@@ -3,12 +3,11 @@ from pydantic import BaseModel
 import sqlite3
 from typing import List
 import pandas as pd
-from model import predict_sentiment  # This is a placeholder for your actual model prediction function
+from model import predict_sentiment 
 
 app = FastAPI()
 
-DATABASE_URL = "sentiment_analysis.db"
-
+DATABASE_URL = "sqlite:///C:/sqlite/database_shelender"
 
 
 class SentimentItem(BaseModel):
@@ -18,13 +17,11 @@ class SentimentItem(BaseModel):
     sentiment: str = None  # Optional, as it might not be provided for insert
 
 
-
 class UpdateItem(BaseModel):
     comment_id: str
     campaign_id: str
     description: str
     sentiment: str
-
 
 
 def get_db_connection():
@@ -33,12 +30,10 @@ def get_db_connection():
     return conn
 
 
-
 @app.post("/predict/")
 async def predict(item: SentimentItem):
     sentiment = predict_sentiment(item.description)
     return {"comment_id": item.comment_id, "sentiment": sentiment}
-
 
 
 @app.post("/insert/")
