@@ -30,40 +30,50 @@ DATABASE_URL = "C:/sqlite/database_shelender"
 class SentimentItem(BaseModel):
     comment_id: str
     campaign_id: str
-    description: str
+    comment_description: str
     sentiment: str = None  # Optional, as it might not be provided for insert
 
 # Model for updating sentiment records, similar to SentimentItem but without optional sentiment
 class UpdateItem(BaseModel):
     comment_id: str
     campaign_id: str
-    description: str
+    comment_description: str
     sentiment: str
 
 
 #Helper function to establish a database connection
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE_URL)
-    conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        conn = sqlite3.connect(DATABASE_URL)
+        conn.row_factory = sqlite3.Row
+        return conn
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
 
 
 # Endpoint for predicting the sentiment of a single comment
 @app.post("/predict/")
 async def predict(item: SentimentItem):
-    sentiment = predict_sentiment(item.description)
-    return {"comment_id": item.comment_id, "sentiment": sentiment}
+    try:
+        sentiment = predict_sentiment(item.comment_description)
+        return {"comment_id": item.comment_id, "sentiment": sentiment}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
 
 # Endpoint for inserting a new sentiment record into the database
 @app.post("/insert/")
 async def insert(item: SentimentItem):
     conn = get_db_connection()
-    # SQL INSERT command is executed to add the new record
-    conn.execute("INSERT INTO sentiment_analysis (comment_id, campaign_id, description, sentiment) VALUES (?, ?, ?, ?)",
-                 (item.comment_id, item.campaign_id, item.description, item.sentiment))
-    conn.commit()
-    conn.close() # Database connection is closed
+    try:
+        # SQL INSERT command is executed to add the new record
+        conn.execute("INSERT INTO sentiment_analysis (comment_id, campaign_id, comment_description, sentiment) VALUES (?, ?, ?, ?)",
+                    (item.comment_id, item.campaign_id, item.comment_description, item.sentiment))
+        conn.commit()
+    except:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
+    finally:
+        conn.close() # Database connection is closed
     return {"message": "Record inserted successfully."}
 
 
@@ -71,14 +81,18 @@ async def insert(item: SentimentItem):
 @app.delete("/delete/{comment_id}")
 async def delete(comment_id: str):
     conn = get_db_connection()
-    # SQL DELETE command is executed to remove the specified record
-    conn.execute("DELETE FROM sentiment_analysis WHERE comment_id = ?", (comment_id,))
-    conn.commit()
-    # If no records were deleted, the comment ID was not found; 404 error is raised
-    if conn.total_changes == 0:
+    try:
+        # SQL DELETE command is executed to remove the specified record
+        conn.execute("DELETE FROM sentiment_analysis WHERE comment_id = ?", (comment_id,))
+        conn.commit()
+        # If no records were deleted, the comment ID was not found; 404 error is raised
+        if conn.total_changes == 0:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Record not found")
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Delete error: {str(e)}")
+    finally:
         conn.close()
-        raise HTTPException(status_code=404, detail="Record not found")
-    conn.close()
     return {"message": "Record deleted successfully."}
 
 
@@ -86,25 +100,45 @@ async def delete(comment_id: str):
 @app.put("/update/")
 async def update(item: UpdateItem):
     conn = get_db_connection()
-    # SQL UPDATE command is executed to modify the specified record
-    conn.execute("UPDATE sentiment_analysis SET campaign_id = ?, description = ?, sentiment = ? WHERE comment_id = ?",
-                 (item.campaign_id, item.description, item.sentiment, item.comment_id))
-    conn.commit()
-    # Here we check if any records were actually updated
-    if conn.total_changes == 0:
+    try:
+        # SQL UPDATE command is executed to modify the specified record
+        conn.execute("UPDATE sentiment_analysis SET campaign_id = ?, comment_description = ?, sentiment = ? WHERE comment_id = ?",
+                    (item.campaign_id, item.comment_description, item.sentiment, item.comment_id))
+        conn.commit()
+        # Here we check if any records were actually updated
+        if conn.total_changes == 0:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Record not found")
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Update error: {str(e)}")
+    finally:
         conn.close()
-        raise HTTPException(status_code=404, detail="Record not found")
-    conn.close()
     return {"message": "Record updated successfully."}
 
 
 # Endpoint for inserting a bulk sentiment record into the database
 @app.post("/bulk_insert/")
 async def bulk_insert(file: UploadFile = File(...)):
-    df = pd.read_csv(file.file)
-    df['sentiment'] = df['comment_description'].apply(predict_sentiment)
+    try:
+        df = pd.read_csv(file.file)
+        print(df)
+        df['sentiment'] = df['comment_description'].apply(predict_sentiment)
+        print(df)
+
+    except UnicodeDecodeError as e:
+        raise HTTPException(status_code=400, detail="Could not decode CSV. Please check the file encoding.")
+    
     conn = get_db_connection()
-    df.to_sql('sentiment_analysis', conn, if_exists='append', index=False)
-    conn.close()
+
+    try:
+        df.to_sql('sentiment_analysis', conn, if_exists='append', index=False)
+    except ValueError as e:  # This might occur if there's a mismatch in DataFrame to SQL table schema
+        raise HTTPException(status_code=500, detail=f"Bulk insert schema error: {str(e)}")
+    except UnicodeDecodeError as e:
+        raise HTTPException(status_code=400, detail="Could not decode CSV. Please check the file encoding.")
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Bulk insert error: {str(e)}")
+    finally:
+        conn.close()
     return {"message": "Bulk insert completed successfully."}
 
