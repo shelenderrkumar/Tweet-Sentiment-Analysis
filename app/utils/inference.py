@@ -1,6 +1,6 @@
 import torch
 from transformers import BertForSequenceClassification, BertTokenizer, pipeline
-from preprocess import preprocess_tweet
+from utils.preprocess import preprocess_tweet
 
 # This is the path to directory where fine-tuned model is saved
 model_path = "C:\\Users\\Shelender Kumar\\Downloads\\Rewaa"

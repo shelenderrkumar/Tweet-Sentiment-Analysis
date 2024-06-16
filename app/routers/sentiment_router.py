@@ -1,58 +1,13 @@
+from fastapi import APIRouter, HTTPException, File, UploadFile
+from ..models import SentimentItem, UpdateItem
+from ..database import get_db_connection
+from ..utils.inference import predict_sentiment
 
-"""
-    Import necessary libraries and modules:
-
-    1. FastAPI for building REST API, HTTPException for error handling
-    2. Pydantic for data validation and settings management
-    3. SQLite3 for database operations
-    4. Pandas for handling bulk insert operations with dataframes
-    5. Custom model for sentiment analysis prediction
-
-"""
-
-import sqlite3
-import pandas as pd
-
-from fastapi import FastAPI, HTTPException, File, UploadFile
-from pydantic import BaseModel
-from typing import List
-from model import predict_sentiment 
-
-
-# Initialize FastAPI app
-app = FastAPI()
-
-# Database connection string, pointing to a SQLite database on the local file system
-DATABASE_URL = "C:/sqlite/database_shelender"
-
-# Pydantic models are defined for data validation and serialization.
-# Model for sentiment items, used for both predictions and insertions
-class SentimentItem(BaseModel):
-    comment_id: str
-    campaign_id: str
-    comment_description: str
-    sentiment: str = None  # Optional, as it might not be provided for insert
-
-# Model for updating sentiment records, similar to SentimentItem but without optional sentiment
-class UpdateItem(BaseModel):
-    comment_id: str
-    campaign_id: str
-    comment_description: str
-    sentiment: str
-
-
-#Helper function to establish a database connection
-def get_db_connection():
-    try:
-        conn = sqlite3.connect(DATABASE_URL)
-        conn.row_factory = sqlite3.Row
-        return conn
-    except sqlite3.Error as e:
-        raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
+router = APIRouter()
 
 
 # Endpoint for predicting the sentiment of a single comment
-@app.post("/predict/")
+@router.post("/predict/")
 async def predict(item: SentimentItem):
     try:
         sentiment = predict_sentiment(item.comment_description)
@@ -62,7 +17,7 @@ async def predict(item: SentimentItem):
 
 
 # Endpoint for inserting a new sentiment record into the database
-@app.post("/insert/")
+@router.post("/insert/")
 async def insert(item: SentimentItem):
     conn = get_db_connection()
     try:
@@ -78,7 +33,7 @@ async def insert(item: SentimentItem):
 
 
 # Endpoint for deleting a sentiment record by its comment I
-@app.delete("/delete/{comment_id}")
+@router.delete("/delete/{comment_id}")
 async def delete(comment_id: str):
     conn = get_db_connection()
     try:
@@ -97,7 +52,7 @@ async def delete(comment_id: str):
 
 
 # Endpoint for updating an existing sentiment record
-@app.put("/update/")
+@router.put("/update/")
 async def update(item: UpdateItem):
     conn = get_db_connection()
     try:
@@ -117,7 +72,7 @@ async def update(item: UpdateItem):
 
 
 # Endpoint for inserting a bulk sentiment record into the database
-@app.post("/bulk_insert/")
+@router.post("/bulk_insert/")
 async def bulk_insert(file: UploadFile = File(...)):
     try:
         df = pd.read_csv(file.file)
@@ -141,4 +96,3 @@ async def bulk_insert(file: UploadFile = File(...)):
     finally:
         conn.close()
     return {"message": "Bulk insert completed successfully."}
-

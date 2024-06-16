@@ -1,6 +1,6 @@
 Instructions to run the application
 
-Applicant Name: Shelender Kumar
+Shelender Kumar
 
 FastAPI
 Step 1: Install Python
