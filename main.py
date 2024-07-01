@@ -8,11 +8,21 @@
     5. Custom model for sentiment analysis prediction
 
 """
-
+import uvicorn
 
 from fastapi import FastAPI
-from app.routers.sentiment_router import router as sentiment_router
+
+from app.api import router as api_router
+
+from app.core.events import create_start_app_handler, create_stop_app_handler
 
 app = FastAPI()
-app.include_router(sentiment_router, prefix="/sentiment", tags=["Sentiment"])
+
+app.include_router(api_router)
+
+app.add_event_handler("startup", create_start_app_handler(app))
+app.add_event_handler("shutdoen", create_stop_app_handler(app))
+
+if __name__ = "__main__":
+    uvicorn.run("main:app", host = "0.0.0.0". port = 8000, reload=True)
 
