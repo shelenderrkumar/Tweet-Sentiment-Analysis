@@ -21,8 +21,8 @@ app = FastAPI()
 
 app.include_router(api_router)
 
-app.add_event_handler("startup", create_start_app_handler(app))
-app.add_event_handler("shutdoen", create_stop_app_handler(app))
+# app.add_event_handler("startup", create_start_app_handler(app))
+# app.add_event_handler("shutdown", create_stop_app_handler(app))
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

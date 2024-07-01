@@ -11,8 +11,6 @@ model_path = "E:\\Shelender Kumar-Solved Assignment\\models"
 model = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-# tokenizer = AutoTokenizer.from_pretrained("cardiffnlp/twitter-xlm-roberta-base-sentiment")
-# model = AutoModelForSequenceClassification.from_pretrained("cardiffnlp/twitter-xlm-roberta-base-sentiment")
 
 # A mapping is defined from sentiment labels to human-readable names
 SENTIMENT_LABELS = {0: "Negative", 1: "Neutral", 2: "Positive"}
