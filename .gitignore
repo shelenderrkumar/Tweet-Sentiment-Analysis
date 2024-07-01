@@ -1,0 +1,6 @@
+models/config.json
+models/model.safetensors
+models/sentencepiece.bpe.model
+models/special_tokens_map.json
+models/tokenizer_config.json
+models/tokenizer.json

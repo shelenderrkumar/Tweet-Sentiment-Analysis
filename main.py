@@ -1,4 +1,3 @@
-
 """
     Import necessary libraries and modules:
 
@@ -11,15 +10,9 @@
 """
 
 
-from fastapi import FastAPI, Response
-from routers.sentiment_router import router as sentiment_router
-
+from fastapi import FastAPI
+from app.routers.sentiment_router import router as sentiment_router
 
 app = FastAPI()
-
 app.include_router(sentiment_router, prefix="/sentiment", tags=["Sentiment"])
 
-
-@app.get("/")
-def read_root():
-    return Response("Server is running")
