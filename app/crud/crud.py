@@ -6,23 +6,17 @@ from ..db.core import get_db_connection
 from app.utils.inference import predict_sentiment
 
 
-async def inference(
-        item
-    ) -> str:
-
-    """Fetches rows from a Smalltable.
-
-    Retrieves rows pertaining to the given keys from the Table instance.
+async def inference(item):
+    """Predicts sentiment for a tweeet.
 
     Args:
-      table_handle:
-        An open smalltable.Table instance.
+      item: A single element containing text and comment_id.
 
     Returns:
-      A dict mapping keys to the corresponding table row data
-      
+      Label predicted for the tweet text by the model
+
     Raises:
-      IOError: An error occurred accessing the smalltable.
+      HTTPException: Prediction error if model is unable to predict.
     """
 
     try:
@@ -32,59 +26,56 @@ async def inference(
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
 
-# Endpoint for inserting a new sentiment record into the database
-async def insert_record(
-        item
-    ):
-    """Fetches rows from a Smalltable.
-
-    Retrieves rows pertaining to the given keys from the Table instance.
+async def insert_record(item):
+    """Inserts new sentiment record into the database
 
     Args:
-      table_handle:
-        An open smalltable.Table instance.
+      Sentiment Record to be inserted in the database.
 
     Returns:
-      A dict mapping keys to the corresponding table row data
-      
+      A dict containing the message indicating that record is inserted.
+
     Raises:
-      IOError: An error occurred accessing the smalltable.
+      HTTPException: An error if record is not inserted.
     """
 
     conn = get_db_connection()
     try:
-        conn.execute("INSERT INTO sentiment_analysis (comment_id, campaign_id, comment_description, sentiment) VALUES (?, ?, ?, ?)",
-                    (item.comment_id, item.campaign_id, item.comment_description, item.sentiment))
+        conn.execute(
+            "INSERT INTO sentiment_analysis (comment_id, campaign_id, comment_description, sentiment) VALUES (?, ?, ?, ?)",
+            (
+                item.comment_id,
+                item.campaign_id,
+                item.comment_description,
+                item.sentiment,
+            ),
+        )
         conn.commit()
     except:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
     finally:
-        conn.close() 
+        conn.close()
     return {"message": "Record inserted successfully."}
 
 
-# Endpoint for deleting a sentiment record by its comment I
-async def delete_record(
-        comment_id: str
-    ):
-    """Fetches rows from a Smalltable.
-
-    Retrieves rows pertaining to the given keys from the Table instance.
+async def delete_record(comment_id: str):
+    """Deletes a sentiment record by its comment id
 
     Args:
-      table_handle:
-        An open smalltable.Table instance.
+      Comment ID of the sentiment record to be deleted from database
 
     Returns:
-      A dict mapping keys to the corresponding table row data
-      
+      A dict containing the message indicating that record is deleted.
+
     Raises:
-      IOError: An error occurred accessing the smalltable.
+      HTTPException: An error if record is not deleted successfully.
     """
 
     conn = get_db_connection()
     try:
-        conn.execute("DELETE FROM sentiment_analysis WHERE comment_id = ?", (comment_id,))
+        conn.execute(
+            "DELETE FROM sentiment_analysis WHERE comment_id = ?", (comment_id,)
+        )
         conn.commit()
         if conn.total_changes == 0:
             conn.close()
@@ -96,29 +87,30 @@ async def delete_record(
     return {"message": "Record deleted successfully."}
 
 
-# Endpoint for updating an existing sentiment record
-async def update_record(
-        item
-    ):
-    """Fetches rows from a Smalltable.
-
-    Retrieves rows pertaining to the given keys from the Table instance.
+async def update_record(item):
+    """Updates a existing sentiment record
 
     Args:
-      table_handle:
-        An open smalltable.Table instance.
+      Sentiment Record to be inserted in the database:
 
     Returns:
-      A dict mapping keys to the corresponding table row data
-      
+      A dict containing the message indicating that record is updated.
+
     Raises:
-      IOError: An error occurred accessing the smalltable.
+      HTTPException: An error if record is not updated successfully.
     """
 
     conn = get_db_connection()
     try:
-        conn.execute("UPDATE sentiment_analysis SET campaign_id = ?, comment_description = ?, sentiment = ? WHERE comment_id = ?",
-                    (item.campaign_id, item.comment_description, item.sentiment, item.comment_id))
+        conn.execute(
+            "UPDATE sentiment_analysis SET campaign_id = ?, comment_description = ?, sentiment = ? WHERE comment_id = ?",
+            (
+                item.campaign_id,
+                item.comment_description,
+                item.sentiment,
+                item.comment_id,
+            ),
+        )
         conn.commit()
         if conn.total_changes == 0:
             conn.close()
@@ -130,41 +122,43 @@ async def update_record(
     return {"message": "Record updated successfully."}
 
 
-async def bulk_insertion(
-        file
-    ):
-    """Fetches rows from a Smalltable.
-
-    Retrieves rows pertaining to the given keys from the Table instance.
+async def bulk_insertion(file):
+    """Predicts sentiment and insertion of records in bulk.
 
     Args:
-      table_handle:
-        An open smalltable.Table instance.
+      File: containing the records.
 
     Returns:
-      A dict mapping keys to the corresponding table row data
-      
+      A dict containing the message indicating that record is inserted.
+
     Raises:
-      IOError: An error occurred accessing the smalltable.
+      ValueError: An error if record is not inserted successfully.
     """
 
     try:
         df = pd.read_csv(file.file)
-        print(df)
-        df['sentiment'] = df['comment_description'].apply(predict_sentiment)
+        df["sentiment"] = df["comment_description"].apply(predict_sentiment)
         print(df)
 
     except UnicodeDecodeError as e:
-        raise HTTPException(status_code=400, detail="Could not decode CSV. Please check the file encoding.")
-    
+        raise HTTPException(
+            status_code=400,
+            detail="Could not decode CSV. Please check the file encoding.",
+        )
+
     conn = get_db_connection()
 
     try:
-        df.to_sql('sentiment_analysis', conn, if_exists='append', index=False)
+        df.to_sql("sentiment_analysis", conn, if_exists="append", index=False)
     except ValueError as e:
-        raise HTTPException(status_code=500, detail=f"Bulk insert schema error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Bulk insert schema error: {str(e)}"
+        )
     except UnicodeDecodeError as e:
-        raise HTTPException(status_code=400, detail="Could not decode CSV. Please check the file encoding.")
+        raise HTTPException(
+            status_code=400,
+            detail="Could not decode CSV. Please check the file encoding.",
+        )
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=f"Bulk insert error: {str(e)}")
     finally:
