@@ -41,8 +41,8 @@ The --reload option enables automatic reloading of the server upon code changes,
 Once the server is running, open a web browser and navigate to http://127.0.0.1:8000/docs This page provides an interactive API documentation where you can test and explore the available endpoints.
 ### Step 9: Using the Endpoints
 Through the interactive documentation, you can execute API calls directly. Each endpoint requires specific inputs:
-/predict/: Submit a POST request with a JSON body containing the comment_id, campaign_id, and description to receive a sentiment prediction.
-/insert/: Submit a POST request with similar data to insert a record into the database.
-/delete/{comment_id}/: Submit a DELETE request with the comment_id in the URL path to delete a specific record.
-/update/: Submit a PUT request with a JSON body containing all the fields required to update an existing record.
-/bulk_insert/: Submit a POST request with a file to insert multiple records at once.
+##### /predict/: Submit a POST request with a JSON body containing the comment_id, campaign_id, and description to receive a sentiment prediction.
+##### /insert/: Submit a POST request with similar data to insert a record into the database.
+##### /delete/{comment_id}/: Submit a DELETE request with the comment_id in the URL path to delete a specific record.
+##### /update/: Submit a PUT request with a JSON body containing all the fields required to update an existing record.
+##### /bulk_insert/: Submit a POST request with a file to insert multiple records at once.
